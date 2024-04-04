@@ -8,31 +8,39 @@ namespace FileUploadToDrive
 {
     internal class Program
     {
-        internal static IList<string> files = new List<string>();
-        internal const string jsonPath = "F:\\Prithvi\\Projects\\FileUploadToDriveFiles\\Credentials.json";
-        internal const string tokenStoragePath = "F:\\Prithvi\\Projects\\FileUploadToDriveFilestokenStorage";
-        
+        internal static string jsonPath;
+        internal static string tokenStoragePath;
+
+        [STAThread]
         internal static void Main(string[] args)
         {
-            Console.WriteLine("Hello, Upload a file!");
+            Console.WriteLine("Hello, welcome to Upload a File!");
+
+            Console.WriteLine("Select the json file having your client secrets...");
+            jsonPath = SelectFiles(false).FirstOrDefault();
+
+            Console.WriteLine("Select the folder for your token storage...");
+            tokenStoragePath=SelectFolder(); 
 
             //This method uploads the given file to google drive
             SingleFile();
+
+            Console.WriteLine();
 
             //This method allows user to select multiple files and uploads them to google drive first in sequential
             //and then in parallel way
             MultipleFiles();
 
+            Console.WriteLine("\nPress a key to exit...");
             Console.ReadKey();            
         }
 
         internal static async void MultipleFiles()
         {
-            Thread thread = new Thread(SelectFiles);
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            thread.Join();
+            Console.WriteLine("Select the files to be uploaded...");
 
+            List<string> files = SelectFiles(true);
+            
             var tokenStorage = new FileDataStore(tokenStoragePath, true);
 
             UserCredential credential;
@@ -58,19 +66,16 @@ namespace FileUploadToDrive
             //Sequential execution
             foreach (var file in files)
             {
-                Google.Apis.Drive.v3.Data.File fileMetadata = new()
-                {
-                    Name = Path.GetFileName(file),
-                    MimeType = GetMimeType(file)
-                };
-
                 FilesResource.CreateMediaUpload request;
 
                 // Create a new file on drive.
                 using (var fstream = new FileStream(file, FileMode.Open))
                 {
                     // Create a new file, with metadata and stream.
-                    request = service.Files.Create(fileMetadata, fstream, GetMimeType(file));
+                    request = service.Files.Create(new Google.Apis.Drive.v3.Data.File() {
+                                    Name = Path.GetFileName(file),
+                                    MimeType = GetMimeType(file)
+                                }, fstream, GetMimeType(file));
                     request.Fields = "id";
                     request.Upload();
                 }
@@ -114,11 +119,11 @@ namespace FileUploadToDrive
             return mimeType;
         }
 
-        private static void SelectFiles()
+        private static List<string> SelectFiles(bool multiSelect)
         {
             OpenFileDialog dialog = new OpenFileDialog();
-            dialog.Multiselect = true;
-            
+            dialog.Multiselect = multiSelect;
+            List<string> files = new();
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 foreach (string file in dialog.FileNames)
@@ -126,12 +131,26 @@ namespace FileUploadToDrive
                     files.Add(file);
                 }
             }
+            return files;
+        }
+
+        private static string SelectFolder()
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            string path="";
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                path = fbd.SelectedPath;
+            }
+            return path;
         }
 
         
         internal static async void SingleFile()
         {
-            var path = "F:\\Prithvi\\Projects\\FileUploadToDriveFiles\\My File To Upload.txt";
+            Console.WriteLine("Select the file to be uploaded...");
+
+            var path = SelectFiles(false).FirstOrDefault();
 
             var tokenStorage = new FileDataStore(tokenStoragePath, true);
 
@@ -153,19 +172,15 @@ namespace FileUploadToDrive
                 HttpClientInitializer = credential
             });
 
-            // Upload file photo.jpg on drive.
-            var fileMetadata = new Google.Apis.Drive.v3.Data.File()
-            {
-                Name = "My File To Upload.txt"
-            };
             FilesResource.CreateMediaUpload request;
 
             // Create a new file on drive.
-            using (var stream = new FileStream(path,
-                       FileMode.Open))
+            using (var stream = new FileStream(path, FileMode.Open))
             {
                 // Create a new file, with metadata and stream.
-                request = service.Files.Create(fileMetadata, stream, "text/plain");
+                request = service.Files.Create(new Google.Apis.Drive.v3.Data.File(){
+                                    Name = "My File To Upload.txt"
+                                }, stream, "text/plain");
                 request.Fields = "id";
                 request.Upload();
             }
