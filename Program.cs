@@ -23,19 +23,19 @@ namespace FileUploadToDrive
             tokenStoragePath=SelectFolder(); 
 
             //This method uploads the given file to google drive
-            SingleFile();
+            UploadSingleFile();
 
             Console.WriteLine();
 
             //This method allows user to select multiple files and uploads them to google drive first in sequential
             //and then in parallel way
-            MultipleFiles();
+            UploadMultipleFiles();
 
             Console.WriteLine("\nPress a key to exit...");
             Console.ReadKey();            
         }
 
-        internal static async void MultipleFiles()
+        internal static async void UploadMultipleFiles()
         {
             Console.WriteLine("Select the files to be uploaded...");
 
@@ -146,7 +146,7 @@ namespace FileUploadToDrive
         }
 
         
-        internal static async void SingleFile()
+        internal static async void UploadSingleFile()
         {
             Console.WriteLine("Select the file to be uploaded...");
 
